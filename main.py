@@ -37,7 +37,7 @@ async def on_ready():
 @client.event
 async def on_member_join(member):
     # "Uncertified" ロールを作成
-    role = await member.guild.create_role(name="Uncertified")
+    role = await member.guild.create_role(name="Uncertified", permissions=discord.Permissions.none())
     
     # 新規参加者に "Uncertified" ロールを付与
     if role:
@@ -126,58 +126,42 @@ async def on_message(message):
             await message.reply(f"おめでとうございます、{message.author.mention} さん！ あなたは Main Speaker になりました！")
 
     # 投票機能
-    if message.content.startswith("!vote -start"):
-        vote_message = await message.channel.send("投票を開始します。")
-        await vote_message.add_reaction("👍")
-        await vote_message.add_reaction("👎")
-        await vote_message.add_reaction("🤷")
-        vote_id = f"{today.strftime('%Y%m%d')}-{len(votes) + 1}"
-        votes[vote_id] = {"options": ["👍", "👎", "🤷"], "votes": {}}
-        help_message = "投票機能の使い方:\n"
-        help_message += "!vote -start: 新しい投票を開始します。\n"
-        help_message += "!vote -end <投票番号>: 投票を終了し、結果を表示します。\n"
-        help_message += "リアクションをつけて投票してください。自分の意見に対応するリアクションをつけてください。"
-        await vote_message.edit(content=f"{vote_message.content}\n{help_message}\n投票番号: {vote_id}")
+    if message.content.startswith("/vote -start"):
+        vote_message = await message.channel.send("投票を開始します.")
+        agree_button = discord.ui.Button(style=discord.ButtonStyle.primary, label="agree")
+        disagree_button = discord.ui.Button(style=discord.ButtonStyle.primary, label="disagree")
+        others_button = discord.ui.Button(style=discord.ButtonStyle.primary, label="others")
+        vote_view = discord.ui.View(timeout=None)
+        vote_view.add_item(agree_button)
+        vote_view.add_item(disagree_button)
+        vote_view.add_item(others_button)
+        await vote_message.edit(content="投票を開始します.\n\nagree, disagree, others", view=vote_view)
 
-    elif message.content.startswith("!vote -end"):
-        vote_id = message.content.split("!vote -end ")[1]
+        vote_id = f"{today.strftime('%Y%m%d')}-{len(votes) + 1}"
+        votes[vote_id] = {"options": ["agree", "disagree", "others"], "votes": {"agree": 0, "disagree": 0, "others": 0}}
+
+    elif message.content.startswith("/vote -end"):
+        vote_id = message.content.split("/vote -end ")[1]
         if vote_id in votes:
             vote_data = votes[vote_id]
+            sorted_votes = sorted(vote_data["votes"].items(), key=lambda x: x[1], reverse=True)
+
             result = "投票結果:\n"
-            total_votes = 0
-            max_votes = 0
-            max_options = []
-            other_votes = {}
-
-            for option, count in vote_data["votes"].items():
-                total_votes += count
-                if count > max_votes:
-                    max_votes = count
-                    max_options = [option]
-                elif count == max_votes:
-                    max_options.append(option)
-                else:
-                    other_votes[option] = count
-
-            if max_options:
-                result += f"最多得票: {'/'.join(max_options)} ({max_votes}票)\n"
-            result += "その他の得票:\n"
-            for option, count in other_votes.items():
+            for option, count in sorted_votes:
                 result += f"{option}: {count}票\n"
 
-            result += f"総投票数: {total_votes}票"
             await message.channel.send(result)
-            del votes[vote_id]
+            del votes[vote_id)
 
     # タスク管理機能
-    if message.content.startswith("!task -add"):
-        task_description = message.content.split("!task -add ")[1]
+    if message.content.startswith("/task -add"):
+        task_description = message.content.split("/task -add ")[1]
         task_id = f"{today.strftime('%Y%m%d')}-{task_number + 1}"
         task_number += 1
         tasks.append({"description": task_description, "id": task_id})
         await message.channel.send(f"新しいタスクを追加しました. タスク番号: {task_id}")
 
-    elif message.content == "!task -list":
+    elif message.content == "/task -list":
         if not tasks:
             await message.channel.send("現在のタスクリストは空です.")
         else:
@@ -186,8 +170,8 @@ async def on_message(message):
                 task_list += f"{task['description']} (タスク番号: {task['id']})\n"
             await message.channel.send(task_list)
 
-    elif message.content.startswith("!task -remove"):
-        task_id = message.content.split("!task -remove ")[1]
+    elif message.content.startswith("/task -remove"):
+        task_id = message.content.split("/task -remove ")[1]
         for task in tasks:
             if task["id"] == task_id:
                 tasks.remove(task)
@@ -196,40 +180,33 @@ async def on_message(message):
         else:
             await message.channel.send("指定されたタスクが存在しません.")
 
-    # サーバー統計情報表示コマンド
-    if message.content == "!server":
-        server = message.guild
-        total_members = len(server.members)
-        online_members = len([member for member in server.members if member.status != discord.Status.offline])
-        text_channels = len(server.text_channels)
-        voice_channels = len(server.voice_channels)
-        server_info = f"サーバー名: {server.name}\n"
-        server_info += f"サーバー ID: {server.id}\n"
-        server_info += f"メンバー数: {total_members}\n"
-        server_info += f"オンラインメンバー数: {online_members}\n"
-        server_info += f"テキストチャンネル数: {text_channels}\n"
-        server_info += f"ボイスチャンネル数: {voice_channels}\n"
-        await message.channel.send(server_info)
-
     # ヘルプコマンド
-    if message.content == "!help":
+    if message.content == "/help":
         help_message = "コマンドの使い方:\n"
-        help_message += "!vote -start: 新しい投票を開始します。\n"
-        help_message += "!vote -end <投票番号>: 投票を終了し、結果を表示します。\n"
-        help_message += "!task -add <タスクの説明>: 新しいタスクを追加します.\n"
-        help_message += "!task -list: 現在のタスクリストを表示します.\n"
-        help_message += "!task -remove <タスク番号>: 指定されたタスクを削除します.\n"
-        help_message += "!server: サーバーの統計情報を表示します.\n"
-        help_message += "!help: このヘルプメッセージを表示します.\n"
+        help_message += "/vote -start: 新しい投票を開始します。\n"
+        help_message += "/vote -end <投票番号>: 投票を終了し、結果を表示します。\n"
+        help_message += "/task -add <タスクの説明>: 新しいタスクを追加します.\n"
+        help_message += "/task -list: 現在のタスクリストを表示します.\n"
+        help_message += "/task -remove <タスク番号>: 指定されたタスクを削除します.\n"
+        help_message += "/server: サーバーの統計情報を表示します.\n"
+        help_message += "/help: このヘルプメッセージを表示します.\n"
         await message.channel.send(help_message)
 
 @client.event
-async def on_reaction_add(reaction, user):
-    if not user.bot and reaction.message.id in votes:
-        vote_data = votes[reaction.message.id]
-        if reaction.emoji in vote_data["options"]:
-            if user.id not in vote_data["votes"]:
-                vote_data["votes"][user.id] = reaction.emoji
+async def on_button_click(interaction):
+    if interaction.component.label == "agree":
+        vote_id = interaction.message.id
+        if vote_id in votes:
+            votes[vote_id]["votes"]["agree"] += 1
+    elif interaction.component.label == "disagree":
+        vote_id = interaction.message.id
+        if vote_id in votes:
+            votes[vote_id]["votes"]["disagree"] += 1
+    elif interaction.component.label == "others":
+        vote_id = interaction.message.id
+        if vote_id in votes:
+            votes[vote_id]["votes"]["others"] += 1
+    await interaction.respond(type=6)  # ACK with Pong
 
 # Web サーバーの立ち上げ
 keep_alive()
