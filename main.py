@@ -151,7 +151,7 @@ async def on_message(message):
                 result += f"{option}: {count}票\n"
 
             await message.channel.send(result)
-            del votes[vote_id)
+            del votes[vote_id]  # ここでカッコが正しい形に修正されています
 
     # タスク管理機能
     if message.content.startswith("/task -add"):
@@ -179,6 +179,14 @@ async def on_message(message):
                 break
         else:
             await message.channel.send("指定されたタスクが存在しません.")
+
+    # サーバー統計情報を表示
+    if message.content == "/server":
+        server_info = f"サーバー名: {message.guild.name}\n"
+        server_info += f"サーバー人数: {message.guild.member_count}\n"
+        server_info += f"サーバー作成日: {message.guild.created_at}\n"
+        server_info += f"サーバーオーナー: {message.guild.owner}\n"
+        await message.channel.send(server_info)
 
     # ヘルプコマンド
     if message.content == "/help":
