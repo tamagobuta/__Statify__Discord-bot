@@ -6,15 +6,15 @@ WORKDIR /app
 # Install dependencies first for cache ★1.b
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
+COPY ./src ./src
 RUN rustup component add rustfmt
 RUN cargo build --release
 RUN rm src/*.rs
 
 # Build my app ★1.c
 #COPY ./proto ./proto
-COPY ./src ./src
 # ★2.b
-RUN cargo install --locked --path .
+#RUN cargo install --locked --path .
 
 # ★2.a
 FROM debian:buster-slim
