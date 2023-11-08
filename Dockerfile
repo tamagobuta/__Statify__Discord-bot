@@ -12,7 +12,6 @@ RUN rm src/*.rs
 
 # Build my app ★1.c
 COPY ./proto ./proto
-COPY ./build.rs ./build.rs
 COPY ./src ./src
 # ★2.b
 RUN cargo install --locked --path .
