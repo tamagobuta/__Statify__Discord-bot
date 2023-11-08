@@ -41,6 +41,8 @@ fn get_intents() -> GatewayIntents {
     intents.insert(GatewayIntents::GUILDS);
     intents.insert(GatewayIntents::GUILD_MESSAGES);
     intents.insert(GatewayIntents::MESSAGE_CONTENT);
+    intents.insert(GatewayIntents::DIRECT_MESSAGES);
+    intents.insert(GatewayIntents::DIRECT_MESSAGE_REACTIONS);
     intents
 }
 
